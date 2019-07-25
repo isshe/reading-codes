@@ -89,6 +89,10 @@ enum {
 	IRQC_IS_NESTED,
 };
 
+/* 这里两个分别是：irq和dev_id
+ * irq: 中断号
+ * dev_id: 设备标识符。同一个驱动程序可能同时负责不同的设备。
+ */
 typedef irqreturn_t (*irq_handler_t)(int, void *);
 
 /**
@@ -108,18 +112,18 @@ typedef irqreturn_t (*irq_handler_t)(int, void *);
  * @dir:	pointer to the proc/irq/NN/name entry
  */
 struct irqaction {
-	irq_handler_t		handler;
-	void			*dev_id;
+	irq_handler_t		handler;	// 设备驱动提供的中断处理函数/例程
+	void			*dev_id;	// 与此设备关联的结构的指针。如net_device结构
 	void __percpu		*percpu_dev_id;
-	struct irqaction	*next;
+	struct irqaction	*next;	// 共享同一个IRQ编号的设备使用此指针连接成一个链表
 	irq_handler_t		thread_fn;
 	struct task_struct	*thread;
 	struct irqaction	*secondary;
-	unsigned int		irq;
-	unsigned int		flags;
+	unsigned int		irq;	// 关联的中断号
+	unsigned int		flags;	// 一组标识(SA_SHIRQ可共享/SA_INTERRUPT)
 	unsigned long		thread_flags;
 	unsigned long		thread_mask;
-	const char		*name;
+	const char		*name;	// 设备名称：可通过/proc/interrupts读取
 	struct proc_dir_entry	*dir;
 } ____cacheline_internodealigned_in_smp;
 
@@ -519,19 +523,7 @@ static inline struct task_struct *this_cpu_ksoftirqd(void)
 	return this_cpu_read(ksoftirqd);
 }
 
-/* Tasklets --- multithreaded analogue of BHs.
-
-   Main feature differing them of generic softirqs: tasklet
-   is running only on one CPU simultaneously.
-
-   Main feature differing them of BHs: different tasklets
-   may be run simultaneously on different CPUs.
-
-   Properties:
-   * If tasklet_schedule() is called, then tasklet is guaranteed
-     to be executed on some cpu at least once after this.
-   * If the tasklet is already scheduled, but its execution is still not
-     started, it will be executed only once.
+/* Tasklets --- multithreadeted, it will be executed only once.
    * If this tasklet is already running on another CPU (or schedule is called
      from tasklet itself), it is rescheduled for later.
    * Tasklet is strictly serialized wrt itself, but not
@@ -721,6 +713,18 @@ extern int arch_early_irq_init(void);
 /*
  * We want to know which function is an entrypoint of a hardirq or a softirq.
  */
+#define __irq_entry		 __attribute__((__section__(".irqentry.text")))
+#define __softirq_entry  \
+	__attribute__((__section__(".softirqentry.text"extern int arch_probe_nr_irqs(void);
+extern int arch_early_irq_init(void);
+
+/*
+ * We want to know which function is an entrypoint of a hardirq or a softirq.
+ */
+#define __irq_entry		 __attribute__((__section__(".irqentry.text")))
+#define __softirq_entry  \
+	__attribute__((__section__(".softirqentry.text")))
+
 #define __irq_entry		 __attribute__((__section__(".irqentry.text")))
 #define __softirq_entry  \
 	__attribute__((__section__(".softirqentry.text")))
