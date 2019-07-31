@@ -793,6 +793,7 @@ struct pci_driver {
 	// 系统关机时调用？
 	void (*shutdown) (struct pci_dev *dev);
 	int  (*sriov_configure) (struct pci_dev *dev, int num_vfs); /* On PF */
+	// 错误处理函数。出错时调用？！
 	const struct pci_error_handlers *err_handler;
 	const struct attribute_group **groups;
 	struct device_driver	driver;
@@ -2235,8 +2236,7 @@ static inline u8 pci_vpd_info_field_size(const u8 *info_field)
 int pci_vpd_find_tag(const u8 *buf, unsigned int off, unsigned int len, u8 rdt);
 
 /**
- * pci_vpd_find_info_keyword - Locates an information field keyword in the VPD
- * @buf: Pointer to buffered vpd data
+ * pci_vpd_find_info_keyword - Locates an information fieldd vpd data
  * @off: The offset into the buffer at which to begin the search
  * @len: The length of the buffer area, relative to off, in which to search
  * @kw: The keyword to search for
@@ -2376,6 +2376,6 @@ void pci_uevent_ers(struct pci_dev *pdev, enum  pci_ers_result err_type);
 #define pci_warn(pdev, fmt, arg...)	dev_warn(&(pdev)->dev, fmt, ##arg)
 #define pci_notice(pdev, fmt, arg...)	dev_notice(&(pdev)->dev, fmt, ##arg)
 #define pci_info(pdev, fmt, arg...)	dev_info(&(pdev)->dev, fmt, ##arg)
-#define pci_dbg(pdev, fmt, arg...)	dev_dbg(&(pdev)->dev, fmt, ##arg)
+#define pci_dbg(pdev, fmt, arg...)	dev_dbg(&(pd#define pci_dbg(pdev, fmt, arg...)	dev_dbg(&(pdev)->dev, fmt, ##arg)
 
 #endif /* LINUX_PCI_H */

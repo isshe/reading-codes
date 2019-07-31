@@ -644,6 +644,10 @@ unsigned long netdev_boot_base(const char *prefix, int unit)
 /*
  * Saves at boot time configured settings for any netdevice.
  */
+/*
+ * netdev_boot_setup：从引导字符串中抽取输入参数，填入一个ifmap结构；
+ * 然后用netdev_boot_setup_add把ifmap结构添加到dev_boot_setup数组中。
+ */
 int __init netdev_boot_setup(char *str)
 {
 	int ints[5];
@@ -9580,16 +9584,7 @@ static void __net_exit default_device_exit_batch(struct list_head *net_list)
 		}
 	}
 	unregister_netdevice_many(&dev_kill_list);
-	rtnl_unlock();
-}
-
-static struct pernet_operations __net_initdata default_device_ops = {
-	.exit = default_device_exit,
-	.exit_batch = default_device_exit_batch,
-};
-
-/*
- *	Initialize the DEV module. At boot time this walks the device list and
+	rtnl_unlock(). At boot time this walks the device list and
  *	unhooks any devices that fail to initialise (normally hardware not
  *	present) and leaves us with a valid list of present and active devices.
  *
@@ -9684,4 +9679,14 @@ out:
 /*
  * 确保net_dev_init会在任何NIC设备驱动程序注册前先执行。
  */
-subsys_initcall(net_dev_init);
+				       NULL, dev_cpu_dead);
+	WARN_ON(rc < 0);
+	rc = 0;
+out:
+	return rc;
+}
+
+/*
+ * 确保net_dev_init会在任何NIC设备驱动程序注册前先执行。
+ */
+subsys_initcall(net_subsys_initcall(net_dev_init);

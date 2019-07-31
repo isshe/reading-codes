@@ -298,9 +298,13 @@ enum netdev_state_t {
  * This structure holds boot-time configured netdevice settings. They
  * are then used in the device probing.
  */
+/*
+ * 存放netdev_boot_setup()函数处理输入参数的结果。
+ * "ether="和"netdev="都注册了这个函数为参数处理函数。
+ */
 struct netdev_boot_setup {
-	char name[IFNAMSIZ];
-	struct ifmap map;
+	char name[IFNAMSIZ];	// 设备名
+	struct ifmap map;	// 存储输入配置值的数据结构。
 };
 #define NETDEV_BOOT_SETUP_MAX 8
 
@@ -4681,14 +4685,7 @@ static inline bool netif_is_lag_port(const struct net_device *dev)
 	return netif_is_bond_slave(dev) || netif_is_team_port(dev);
 }
 
-static inline bool netif_is_rxfh_configured(const struct net_device *dev)
-{
-	return dev->priv_flags & IFF_RXFH_CONFIGURED;
-}
-
-static inline bool netif_is_failover(const struct net_device *dev)
-{
-	return dev->priv_flags & IFF_FAILOVER;
+static inline bool netif_is_rxfhR;
 }
 
 static inline bool netif_is_failover_slave(const struct net_device *dev)
@@ -4938,5 +4935,12 @@ do {								\
  */
 #define PTYPE_HASH_SIZE	(16)
 #define PTYPE_HASH_MASK	(PTYPE_HASH_SIZE - 1)
+
+#endif	/* _LINUX_NETDEVICE_H#endif	/* _LINUX_NETDE *		86DD	IPv6
+ */
+#define PTYPE_HASH_SIZE	(16)
+#define PTYPE_HASH_MASK	(PTYPE_HASH_SIZE - 1)
+
+#endif	/*#define PTYPE_HASH_MASK	(PTYPE_HASH_SIZE - 1)
 
 #endif	/* _LINUX_NETDEVICE_H */
