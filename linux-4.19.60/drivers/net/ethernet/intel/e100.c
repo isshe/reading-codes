@@ -2829,6 +2829,7 @@ static int e100_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	struct nic *nic;
 	int err;
 
+    // 分配net_device结构。alloc_etherdev是alloc_netdev的包裹函数
 	if (!(netdev = alloc_etherdev(sizeof(struct nic))))
 		return -ENOMEM;
 
@@ -2849,6 +2850,7 @@ static int e100_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	nic->mdio_ctrl = mdio_ctrl_hw;
 	pci_set_drvdata(pdev, netdev);
 
+    // 开启设备？！
 	if ((err = pci_enable_device(pdev))) {
 		netif_err(nic, probe, nic->netdev, "Cannot enable PCI device, aborting\n");
 		goto err_out_free_dev;
@@ -2941,6 +2943,8 @@ static int e100_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	pci_pme_active(pdev, false);
 
 	strcpy(netdev->name, "eth%d");
+
+	// 注册设备
 	if ((err = register_netdev(netdev))) {
 		netif_err(nic, probe, nic->netdev, "Cannot register net device, aborting\n");
 		goto err_out_free;
