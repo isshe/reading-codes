@@ -45,8 +45,23 @@
  * section.
  */
 
+/*
+ * 以下定义一些宏。例如驱动模块里常用的__init()/__exit()
+ */
+
 /* These are for everybody (although not all archs will actually
    discard it in modules) */
+/*
+ * __init: 可用于"引导期间初始化函数"，引导阶段结束就不再需要的函数。
+ */
+/*
+ * data相关的宏是和数据结构相关的。
+ * call相关的宏是和函数相关的。
+ */
+/*
+ * __initdata: 只用于引导期间的以初始化的数据结构。
+ * __exitdata: 只用于标记__exitcall的函数所用的数据结构。
+ */
 #define __init		__section(.init.text) __cold  __latent_entropy __noinitretpoline
 #define __initdata	__section(.init.data)
 #define __initconst	__section(.init.rodata)
@@ -80,6 +95,9 @@
 #define __exitused  __used
 #endif
 
+/*
+ * __exit: __init()的配对宏。当相关内核组件关闭时，就会调用。通常是用于标记module_exit()函数。
+ */
 #define __exit          __section(.exit.text) __exitused __cold notrace
 
 /* Used for MEMORY_HOTPLUG */
@@ -214,6 +232,10 @@ extern bool initcall_debug;
  */
 #define pure_initcall(fn)		__define_initcall(fn, 0)
 
+/*
+ * 以下这组宏可标记那些必须在引导期间执行的初始化函数。
+ * 优先级按排列顺序从高到低。
+ */
 #define core_initcall(fn)		__define_initcall(fn, 1)
 #define core_initcall_sync(fn)		__define_initcall(fn, 1s)
 #define postcore_initcall(fn)		__define_initcall(fn, 2)
@@ -230,8 +252,10 @@ extern bool initcall_debug;
 #define late_initcall(fn)		__define_initcall(fn, 7)
 #define late_initcall_sync(fn)		__define_initcall(fn, 7s)
 
+// 废弃宏，是device_initcall的别名。
 #define __initcall(fn) device_initcall(fn)
 
+// 单次离开函数(one-shot exit function)。当关联的内核组件关闭时，会被调用。
 #define __exitcall(fn)						\
 	static exitcall_t __exitcall_##fn __exit_call = fn
 
