@@ -286,9 +286,9 @@ struct header_ops {
  */
 
 enum netdev_state_t {
-	__LINK_STATE_START,
-	__LINK_STATE_PRESENT,
-	__LINK_STATE_NOCARRIER,
+	__LINK_STATE_START,	// 设备开启
+	__LINK_STATE_PRESENT,	// 设备存在
+	__LINK_STATE_NOCARRIER, //没有载波
 	__LINK_STATE_LINKWATCH_PENDING,
 	__LINK_STATE_DORMANT,
 };
@@ -1803,8 +1803,7 @@ struct net_device {
 	 *	part of the usual set specified in Space.c.
 	 */
 	/*
-	 * state: 由网络子系统使用的一组标识。
-	 * 相关函数：set_bit/clear_bit
+	 * state: 和其队列规则有关的设备状态。
 	 */
 	unsigned long		state;
 
@@ -1890,8 +1889,10 @@ struct net_device {
 	const struct header_ops *header_ops;
 
 	/*
-	 * flags: 某些位标识网络设备的功能（如IFF_MULTICAST）;另一些标识状态的改变（如IFF_UP、IFF_RUNNIG）
-	 * 详细列表见：<linux/if.h>
+	 * flags: 某些位标识网络设备的功能（如IFF_MULTICAST）;
+	 * 	另一些标识状态的改变（如IFF_UP、IFF_RUNNIG）;
+	 * 	多数标识代表设备的能力。
+	 * 详细列表见：<include/linux/if.h>
 	 */
 	unsigned int		flags;
 

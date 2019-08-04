@@ -784,7 +784,11 @@ EXPORT_SYMBOL(dev_get_by_name_rcu);
  *	release it when it is no longer needed. %NULL is returned if no
  *	matching device is found.
  */
-
+/*
+ * dev_get_by_name：根据名字获取设备(net_device)
+ * @net: 网络命名空间
+ * @name：设备名字
+ */
 struct net_device *dev_get_by_name(struct net *net, const char *name)
 {
 	struct net_device *dev;
@@ -858,7 +862,11 @@ EXPORT_SYMBOL(dev_get_by_index_rcu);
  *	had a reference added and the pointer is safe until the user calls
  *	dev_put to indicate they have finished with it.
  */
-
+/*
+ * dev_get_by_index: 根据索引获取设备(net_device)
+ * @net: 网络命名空间
+ * @ifindex: 设备索引，dev->ifindex
+ */
 struct net_device *dev_get_by_index(struct net *net, int ifindex)
 {
 	struct net_device *dev;
