@@ -8653,6 +8653,10 @@ EXPORT_SYMBOL_GPL(init_dummy_netdev);
  *	and expands the device name if you passed a format string to
  *	alloc_netdev.
  */
+/*
+ * register_netdev: 网络设备注册。是register_netdevice的包裹函数。
+ * @dev: 需要注册的设备
+ */
 int register_netdev(struct net_device *dev)
 {
 	int err;
@@ -8686,6 +8690,11 @@ EXPORT_SYMBOL(netdev_refcnt_read);
  * reference if they receive an UNREGISTER event.
  * We can get stuck here if buggy protocols don't correctly
  * call dev_put.
+ */
+/*
+ * netdev_wait_allrefs：等待直到所有对dev的引用都释放。
+ * @dev: 目标设备(net_device)
+ * 这个函数在注销网络设备时被调用。
  */
 static void netdev_wait_allrefs(struct net_device *dev)
 {
@@ -8760,6 +8769,9 @@ static void netdev_wait_allrefs(struct net_device *dev)
  * We must not return until all unregister events added during
  * the interval the lock was held have been completed.
  */
+/*
+ * 注册/注销都是通过这个函数！
+ */
 void netdev_run_todo(void)
 {
 	struct list_head list;
@@ -8788,6 +8800,7 @@ void netdev_run_todo(void)
 
 		dev->reg_state = NETREG_UNREGISTERED;
 
+		// 等待所有引用釋放
 		netdev_wait_allrefs(dev);
 
 		/* paranoia */

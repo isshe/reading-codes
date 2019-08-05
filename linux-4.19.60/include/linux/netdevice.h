@@ -2113,12 +2113,12 @@ struct net_device {
 	/*
 	 * reg_state:设备注册状态
 	 */
-	enum { NETREG_UNINITIALIZED=0,
-	       NETREG_REGISTERED,	/* completed register_netdevice */
-	       NETREG_UNREGISTERING,	/* called unregister_netdevice */
-	       NETREG_UNREGISTERED,	/* completed unregister todo */
-	       NETREG_RELEASED,		/* called free_netdev */
-	       NETREG_DUMMY,		/* dummy device for NAPI poll */
+	enum { NETREG_UNINITIALIZED=0, 	/* net_device结构已分配而且其内容都已清零 */
+	       NETREG_REGISTERED,		/* 设备已完成注册 */
+	       NETREG_UNREGISTERING,	/* 调用了unregister_netdevice */
+	       NETREG_UNREGISTERED,	/* 设备已完成注销/除名，但是net_device结构还没释放掉 */
+	       NETREG_RELEASED,		/* 调用了free_netdev，所有对net_device的引用到释放了，此结构可以被释放了 */
+	       NETREG_DUMMY,		/* dummy device for NAPI poll（用于NAPI轮询的虚拟设备） */
 	} reg_state:8;
 
 	bool dismantle;

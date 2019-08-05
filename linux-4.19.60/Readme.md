@@ -35,6 +35,7 @@
         * ethernet/
             * intel/
                 * e100.c: intel相关的PCI驱动。
+        * tun.c: 通用TUN/TAP设备驱动程序。（多个网络设备注销示例）
 * net/
     * core/
         * dev.c: 设备初始化等。
