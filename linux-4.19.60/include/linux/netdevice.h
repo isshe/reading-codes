@@ -2577,20 +2577,39 @@ struct netdev_lag_lower_state_info {
  * and the rtnetlink notification exclusion list in rtnetlink_event() when
  * adding new types.
  */
+
+/*
+ * netdevice通知链。网络设备的事件通知类型。
+ * 请记住，在添加新类型时更新netdv_cmd_to_name()和rtnetlink_event()中的rtnetlink通知排除列表。
+ */
 enum netdev_cmd {
-	NETDEV_UP	= 1,	/* For now you can't veto a device up/down */
-	NETDEV_DOWN,
-	NETDEV_REBOOT,		/* Tell a protocol stack a network interface
-				   detected a hardware crash and restarted
-				   - we can use this eg to kick tcp sessions
-				   once done */
-	NETDEV_CHANGE,		/* Notify device state change */
-	NETDEV_REGISTER,
-	NETDEV_UNREGISTER,
+	NETDEV_UP	= 1,	// 报告设备已开启，由dev_open()产生。	/* For now you can't veto a device up/down */
+	NETDEV_DOWN,		// 报告设备已关闭，注意还有个NETDEV_GOING_DOWN。都是由 dev_close()产生。
+
+	/* Tell a protocol stack a network interface
+	 * detected a hardware crash and restarted
+	 *  - we can use this eg to kick tcp sessions
+	 * once done
+	 */
+	/*
+	 * 因为硬件失败，设备已重启。
+	 * 告诉协议栈，网络接口检测到硬件崩溃并重新启动。
+	 * 我们可以使用它来完成一次tcp会话。【？？？】
+	 */
+	NETDEV_REBOOT,
+
+	/*
+     * 设备状态或配置改变了。
+     *（2.6版本时，此事件会用在NETDEV_CHANGEADDR和NETDEV_CHANGENAME之外的情况；现在看起来不是这样）
+     * 当dev->flags改变时，就会用到此事件。
+	 */
+	NETDEV_CHANGE,
+	NETDEV_REGISTER,	// 设备已注册，由register_netdevice()产生
+	NETDEV_UNREGISTER,	// 设备已注销/除名，由unregister_netdevice()产生
 	NETDEV_CHANGEMTU,	/* notify after mtu change happened */
-	NETDEV_CHANGEADDR,
-	NETDEV_GOING_DOWN,
-	NETDEV_CHANGENAME,
+	NETDEV_CHANGEADDR,	// 设备的硬件地址(或相关联的广播地址)已改变。
+	NETDEV_GOING_DOWN,	// 设备要关闭了
+	NETDEV_CHANGENAME,	// 设备名称改变了
 	NETDEV_FEAT_CHANGE,
 	NETDEV_BONDING_FAILOVER,
 	NETDEV_PRE_UP,

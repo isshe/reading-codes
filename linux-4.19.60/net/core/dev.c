@@ -1442,6 +1442,10 @@ static int __dev_open(struct net_device *dev)
  *	Calling this function on an active interface is a nop. On a failure
  *	a negative errno code is returned.
  */
+/*
+ * dev_open - 打开一个接口以供使用。
+ * @dev: 要打开的设备
+ */
 int dev_open(struct net_device *dev)
 {
 	int ret;
@@ -1453,6 +1457,7 @@ int dev_open(struct net_device *dev)
 	if (ret < 0)
 		return ret;
 
+	// 分别通知应用层 & 内核组件
 	rtmsg_ifinfo(RTM_NEWLINK, dev, IFF_UP|IFF_RUNNING, GFP_KERNEL);
 	call_netdevice_notifiers(NETDEV_UP, dev);
 
@@ -1541,6 +1546,14 @@ EXPORT_SYMBOL(dev_close_many);
  *	%NETDEV_GOING_DOWN is sent to the netdev notifier chain. The device
  *	is then deactivated and finally a %NETDEV_DOWN is sent to the notifier
  *	chain.
+ */
+/*
+ * dev_close - 关闭一个接口
+ * @dev: 关闭设备
+ * 
+ * 这个函数将一个活动的设备改为关闭状态。
+ * NETDEV_GOING_DOWN会被发送到网络设备通知链。
+ * 设备已经关闭后，NETDEV_DOWN会被发送到网络设备通知链。
  */
 void dev_close(struct net_device *dev)
 {
@@ -1642,7 +1655,17 @@ static int dev_boot_phase = 1;
  * to the new notifier to allow device to have a race free
  * view of the network device list.
  */
-
+/*
+ * register_netdevice_notifier - 注册一个网络通知块。
+ * @nb: 通知块。
+ * 
+ * 内核组件用此函数注册感兴趣的事件。
+ * 注册发生网络设备事件时要调用的通知程序。
+ * 传递的通知程序链接到内核结构中，在取消注册之前不得重复使用。
+ * 失败时返回负的errno代码。
+ *
+ * 注册后，所有注册和向上事件都将重播到新通知程序，以允许设备拥有网络设备列表的无竞赛视图。【？？？】
+ */
 int register_netdevice_notifier(struct notifier_block *nb)
 {
 	struct net_device *dev;
