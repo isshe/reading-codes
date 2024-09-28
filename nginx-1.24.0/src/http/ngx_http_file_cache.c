@@ -1354,39 +1354,57 @@ ngx_http_file_cache_update_variant(ngx_http_request_t *r, ngx_http_cache_t *c)
     return NGX_OK;
 }
 
-
+/**
+ * 函数名：ngx_http_file_cache_update
+ *
+ * 功能：更新 HTTP 文件缓存
+ *  1. 重命名临时文件为缓存文件
+ *  2. 更新缓存节点信息
+ *  3. 更新共享内存中的缓存统计信息
+ *
+ * 参数：
+ *   r: HTTP 请求结构体指针
+ *   tf: 临时文件结构体指针
+ *
+ * 返回值：无
+ */
 void
 ngx_http_file_cache_update(ngx_http_request_t *r, ngx_temp_file_t *tf)
 {
-    off_t                   fs_size;
-    ngx_int_t               rc;
-    ngx_file_uniq_t         uniq;
-    ngx_file_info_t         fi;
-    ngx_http_cache_t        *c;
-    ngx_ext_rename_file_t   ext;
-    ngx_http_file_cache_t  *cache;
+    // 声明变量
+    off_t                   fs_size;  // 文件系统大小
+    ngx_int_t               rc;       // 返回码
+    ngx_file_uniq_t         uniq;     // 文件唯一标识符
+    ngx_file_info_t         fi;       // 文件信息
+    ngx_http_cache_t        *c;       // HTTP 缓存指针
+    ngx_ext_rename_file_t   ext;      // 重命名文件的扩展信息
+    ngx_http_file_cache_t  *cache;    // 文件缓存指针
 
-    c = r->cache;
+    c = r->cache;  // 获取请求的缓存指针
 
+    // 如果缓存已更新，直接返回
     if (c->updated) {
         return;
     }
 
+    // 记录调试日志
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "http file cache update");
 
-    cache = c->file_cache;
+    cache = c->file_cache;  // 获取文件缓存指针
 
-    c->updated = 1;
-    c->updating = 0;
+    c->updated = 1;   // 标记缓存已更新
+    c->updating = 0;  // 清除更新中标志
 
-    uniq = 0;
-    fs_size = 0;
+    uniq = 0;      // 初始化唯一标识符
+    fs_size = 0;   // 初始化文件系统大小
 
+    // 记录重命名操作的调试日志
     ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "http file cache rename: \"%s\" to \"%s\"",
                    tf->file.name.data, c->file.name.data);
 
+    // 设置重命名文件的扩展信息
     ext.access = NGX_FILE_OWNER_ACCESS;
     ext.path_access = NGX_FILE_OWNER_ACCESS;
     ext.time = -1;
@@ -1394,38 +1412,45 @@ ngx_http_file_cache_update(ngx_http_request_t *r, ngx_temp_file_t *tf)
     ext.delete_file = 1;
     ext.log = r->connection->log;
 
+    // 执行文件重命名操作
     rc = ngx_ext_rename_file(&tf->file.name, &c->file.name, &ext);
 
     if (rc == NGX_OK) {
-
+        // 如果重命名成功，获取文件信息
         if (ngx_fd_info(tf->file.fd, &fi) == NGX_FILE_ERROR) {
+            // 获取文件信息失败，记录错误日志
             ngx_log_error(NGX_LOG_CRIT, r->connection->log, ngx_errno,
                           ngx_fd_info_n " \"%s\" failed", tf->file.name.data);
 
             rc = NGX_ERROR;
 
         } else {
+            // 获取文件唯一标识符和文件系统大小
             uniq = ngx_file_uniq(&fi);
             fs_size = (ngx_file_fs_size(&fi) + cache->bsize - 1) / cache->bsize;
         }
     }
 
+    // 锁定共享内存
     ngx_shmtx_lock(&cache->shpool->mutex);
 
+    // 更新缓存节点信息
     c->node->count--;
     c->node->error = 0;
     c->node->uniq = uniq;
     c->node->body_start = c->body_start;
 
+    // 更新缓存大小
     cache->sh->size += fs_size - c->node->fs_size;
     c->node->fs_size = fs_size;
 
     if (rc == NGX_OK) {
-        c->node->exists = 1;
+        c->node->exists = 1;  // 标记文件存在
     }
 
-    c->node->updating = 0;
+    c->node->updating = 0;  // 清除更新中标志
 
+    // 解锁共享内存
     ngx_shmtx_unlock(&cache->shpool->mutex);
 }
 
@@ -2290,31 +2315,53 @@ ngx_http_file_cache_set_watermark(ngx_http_file_cache_t *cache)
 }
 
 
+/**
+ * 函数名：ngx_http_file_cache_valid
+ *
+ * 功能：一句话总结
+ *  1. 检查传入的`cache_valid`数组是否为空。
+ *  2. 如果不为空，遍历数组中的每个元素。
+ *  3. 对每个元素，检查其`status`是否为 0(表示匹配所有状态) 或者与传入的`status`相匹配。
+ *  4. 如果找到匹配的元素，返回该元素的`valid`值。
+ *  5. 如果遍历完整个数组都没有找到匹配的元素，返回 0。
+ * 参数：
+ *   cache_valid: ngx_array_t 类型的指针
+ *   status: ngx_uint_t 类型
+ *
+ * 返回值：time_t 类型 (表示时间的整数类型)
+ */
 time_t
 ngx_http_file_cache_valid(ngx_array_t *cache_valid, ngx_uint_t status)
 {
+    // 声明循环计数器 i
     ngx_uint_t               i;
+    // 声明指向 ngx_http_cache_valid_t 结构的指针 valid
     ngx_http_cache_valid_t  *valid;
 
+    // 如果 cache_valid 为 NULL，直接返回 0
     if (cache_valid == NULL) {
         return 0;
     }
 
+    // 获取 cache_valid 数组的元素指针
     valid = cache_valid->elts;
+    // 遍历 cache_valid 数组
     for (i = 0; i < cache_valid->nelts; i++) {
 
+        // 如果当前元素的 status 为 0(表示匹配所有状态),返回其 valid 值
         if (valid[i].status == 0) {
             return valid[i].valid;
         }
 
+        // 如果当前元素的 status 与传入的 status 相匹配，返回其 valid 值
         if (valid[i].status == status) {
             return valid[i].valid;
         }
     }
 
+    // 如果没有找到匹配的状态，返回 0
     return 0;
 }
-
 
 char *
 ngx_http_file_cache_set_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
