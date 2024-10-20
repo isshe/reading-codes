@@ -79,18 +79,36 @@ ngx_str_t  ngx_http_cache_status[] = {
 static u_char  ngx_http_file_cache_key[] = { LF, 'K', 'E', 'Y', ':', ' ' };
 
 
+/**
+ * 函数名：ngx_http_file_cache_init
+ *
+ * 功能：初始化 HTTP 文件缓存
+ *  1. 检查并验证缓存配置
+ *  2. 初始化共享内存
+ *  3. 设置缓存相关参数
+ *
+ * 参数：
+ *   shm_zone: 共享内存区域结构体指针
+ *   data: 旧缓存数据指针（如果存在）
+ *
+ * 返回值：
+ *   NGX_OK: 初始化成功
+ *   NGX_ERROR: 初始化失败
+ */
 static ngx_int_t
 ngx_http_file_cache_init(ngx_shm_zone_t *shm_zone, void *data)
 {
-    ngx_http_file_cache_t  *ocache = data;
+    ngx_http_file_cache_t  *ocache = data;  // 旧缓存数据
 
     size_t                  len;
     ngx_uint_t              n;
-    ngx_http_file_cache_t  *cache;
+    ngx_http_file_cache_t  *cache;  // 新缓存数据
 
-    cache = shm_zone->data;
+    cache = shm_zone->data;  // 获取新缓存数据
 
+    // 如果存在旧缓存数据，进行配置验证
     if (ocache) {
+        // 检查缓存路径是否一致
         if (ngx_strcmp(cache->path->name.data, ocache->path->name.data) != 0) {
             ngx_log_error(NGX_LOG_EMERG, shm_zone->shm.log, 0,
                           "cache \"%V\" uses the \"%V\" cache path "
@@ -101,6 +119,7 @@ ngx_http_file_cache_init(ngx_shm_zone_t *shm_zone, void *data)
             return NGX_ERROR;
         }
 
+        // 检查缓存级别是否一致
         for (n = 0; n < NGX_MAX_PATH_LEVEL; n++) {
             if (cache->path->level[n] != ocache->path->level[n]) {
                 ngx_log_error(NGX_LOG_EMERG, shm_zone->shm.log, 0,
@@ -110,13 +129,15 @@ ngx_http_file_cache_init(ngx_shm_zone_t *shm_zone, void *data)
             }
         }
 
+        // 复制旧缓存的共享数据和参数
         cache->sh = ocache->sh;
-
         cache->shpool = ocache->shpool;
         cache->bsize = ocache->bsize;
 
+        // 调整最大缓存大小
         cache->max_size /= cache->bsize;
 
+        // 如果缓存不是冷启动或正在加载，禁用加载器
         if (!cache->sh->cold || cache->sh->loading) {
             cache->path->loader = NULL;
         }
@@ -124,8 +145,10 @@ ngx_http_file_cache_init(ngx_shm_zone_t *shm_zone, void *data)
         return NGX_OK;
     }
 
+    // 获取共享内存池
     cache->shpool = (ngx_slab_pool_t *) shm_zone->shm.addr;
 
+    // 如果共享内存已存在，直接使用
     if (shm_zone->shm.exists) {
         cache->sh = cache->shpool->data;
         cache->bsize = ngx_fs_bsize(cache->path->name.data);
@@ -134,6 +157,7 @@ ngx_http_file_cache_init(ngx_shm_zone_t *shm_zone, void *data)
         return NGX_OK;
     }
 
+    // 分配共享内存用于缓存数据
     cache->sh = ngx_slab_alloc(cache->shpool, sizeof(ngx_http_file_cache_sh_t));
     if (cache->sh == NULL) {
         return NGX_ERROR;
@@ -141,31 +165,38 @@ ngx_http_file_cache_init(ngx_shm_zone_t *shm_zone, void *data)
 
     cache->shpool->data = cache->sh;
 
+    // 初始化红黑树
     ngx_rbtree_init(&cache->sh->rbtree, &cache->sh->sentinel,
                     ngx_http_file_cache_rbtree_insert_value);
 
+    // 初始化队列
     ngx_queue_init(&cache->sh->queue);
 
+    // 设置缓存初始状态
     cache->sh->cold = 1;
     cache->sh->loading = 0;
     cache->sh->size = 0;
     cache->sh->count = 0;
     cache->sh->watermark = (ngx_uint_t) -1;
 
+    // 获取文件系统块大小
     cache->bsize = ngx_fs_bsize(cache->path->name.data);
 
+    // 调整最大缓存大小
     cache->max_size /= cache->bsize;
 
+    // 分配日志上下文内存
     len = sizeof(" in cache keys zone \"\"") + shm_zone->shm.name.len;
-
     cache->shpool->log_ctx = ngx_slab_alloc(cache->shpool, len);
     if (cache->shpool->log_ctx == NULL) {
         return NGX_ERROR;
     }
 
+    // 设置日志上下文
     ngx_sprintf(cache->shpool->log_ctx, " in cache keys zone \"%V\"%Z",
                 &shm_zone->shm.name);
 
+    // 禁用内存不足日志
     cache->shpool->log_nomem = 0;
 
     return NGX_OK;
@@ -224,39 +255,57 @@ ngx_http_file_cache_create(ngx_http_request_t *r)
 }
 
 
+/**
+ * 函数名：ngx_http_file_cache_create_key
+ *
+ * 功能：为 HTTP 请求创建文件缓存的键
+ *  1. 计算缓存键的 CRC32 和 MD5 值
+ *  2. 设置缓存头部起始位置
+ *  3. 生成最终的缓存键
+ *
+ * 参数：
+ *   r: HTTP 请求结构体指针
+ *
+ * 返回值：无
+ */
 void
 ngx_http_file_cache_create_key(ngx_http_request_t *r)
 {
-    size_t             len;
-    ngx_str_t         *key;
-    ngx_uint_t         i;
-    ngx_md5_t          md5;
-    ngx_http_cache_t  *c;
+    size_t             len;        // 用于存储所有键的总长度
+    ngx_str_t         *key;        // 指向键数组的指针
+    ngx_uint_t         i;          // 循环计数器
+    ngx_md5_t          md5;        // MD5 计算结构体
+    ngx_http_cache_t  *c;          // HTTP 缓存结构体指针
 
-    c = r->cache;
+    c = r->cache;                  // 获取请求的缓存结构体
 
-    len = 0;
+    len = 0;                       // 初始化总长度为 0
 
-    ngx_crc32_init(c->crc32);
-    ngx_md5_init(&md5);
+    ngx_crc32_init(c->crc32);      // 初始化 CRC32 计算
+    ngx_md5_init(&md5);            // 初始化 MD5 计算
 
-    key = c->keys.elts;
-    for (i = 0; i < c->keys.nelts; i++) {
+    key = c->keys.elts;            // 获取键数组的起始地址
+    for (i = 0; i < c->keys.nelts; i++) {  // 遍历所有的键
+        // 记录调试日志，输出当前处理的键
         ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                        "http cache key: \"%V\"", &key[i]);
 
-        len += key[i].len;
+        len += key[i].len;         // 累加键的长度
 
+        // 更新 CRC32 值
         ngx_crc32_update(&c->crc32, key[i].data, key[i].len);
+        // 更新 MD5 值
         ngx_md5_update(&md5, key[i].data, key[i].len);
     }
 
+    // 计算缓存头部的起始位置
     c->header_start = sizeof(ngx_http_file_cache_header_t)
                       + sizeof(ngx_http_file_cache_key) + len + 1;
 
-    ngx_crc32_final(c->crc32);
-    ngx_md5_final(c->key, &md5);
+    ngx_crc32_final(c->crc32);     // 完成 CRC32 计算
+    ngx_md5_final(c->key, &md5);   // 完成 MD5 计算，结果存储在 c->key 中
 
+    // 将计算得到的键复制到 c->main 中
     ngx_memcpy(c->main, c->key, NGX_HTTP_CACHE_KEY_LEN);
 }
 

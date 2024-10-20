@@ -37,28 +37,29 @@ typedef struct {
 
 
 typedef struct {
-    ngx_rbtree_node_t                node;
-    ngx_queue_t                      queue;
+    ngx_rbtree_node_t                node;       /* 红黑树节点 */
+    ngx_queue_t                      queue;      /* 队列节点 */
 
+    /* 缓存键,长度为NGX_HTTP_CACHE_KEY_LEN减去ngx_rbtree_key_t的大小 */
     u_char                           key[NGX_HTTP_CACHE_KEY_LEN
                                          - sizeof(ngx_rbtree_key_t)];
 
-    unsigned                         count:20;
-    unsigned                         uses:10;
-    unsigned                         valid_msec:10;
-    unsigned                         error:10;
-    unsigned                         exists:1;
-    unsigned                         updating:1;
-    unsigned                         deleting:1;
-    unsigned                         purged:1;
+    unsigned                         count:20;   /* 引用计数 */
+    unsigned                         uses:10;    /* 使用次数 */
+    unsigned                         valid_msec:10; /* 有效期(毫秒) */
+    unsigned                         error:10;   /* 错误码 */
+    unsigned                         exists:1;   /* 缓存文件是否存在 */
+    unsigned                         updating:1; /* 是否正在更新 */
+    unsigned                         deleting:1; /* 是否正在删除 */
+    unsigned                         purged:1;   /* 是否已被清除 */
                                      /* 10 unused bits */
 
-    ngx_file_uniq_t                  uniq;
-    time_t                           expire;
-    time_t                           valid_sec;
-    size_t                           body_start;
-    off_t                            fs_size;
-    ngx_msec_t                       lock_time;
+    ngx_file_uniq_t                  uniq;       /* 文件唯一标识符 */
+    time_t                           expire;     /* 过期时间 */
+    time_t                           valid_sec;  /* 有效期(秒) */
+    size_t                           body_start; /* 响应体在缓存文件中的起始位置 */
+    off_t                            fs_size;    /* 缓存文件大小 */
+    ngx_msec_t                       lock_time;  /* 锁定时间 */
 } ngx_http_file_cache_node_t;
 
 
