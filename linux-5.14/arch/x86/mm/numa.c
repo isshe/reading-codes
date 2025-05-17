@@ -555,6 +555,7 @@ static int __init numa_register_memblks(struct numa_meminfo *mi)
 	if (WARN_ON(nodes_empty(node_possible_map)))
 		return -EINVAL;
 
+	// 将每个 memblock region 与 NUMA 节点关联
 	for (i = 0; i < mi->nr_blks; i++) {
 		struct numa_memblk *mb = &mi->blk[i];
 		memblock_set_node(mb->start, mb->end - mb->start,
@@ -587,6 +588,7 @@ static int __init numa_register_memblks(struct numa_meminfo *mi)
 	if (!numa_meminfo_cover_memory(mi))
 		return -EINVAL;
 
+	// 为所有可能存在的 NUMA 节点申请 pglist_data 结构体空间
 	/* Finally register nodes. */
 	for_each_node_mask(nid, node_possible_map) {
 		u64 start = PFN_PHYS(max_pfn);
@@ -609,9 +611,11 @@ static int __init numa_register_memblks(struct numa_meminfo *mi)
 		if (end && (end - start) < NODE_MIN_SIZE)
 			continue;
 
+		// 为 nid 申请一个 pglist_data 结构体
 		alloc_node_data(nid);
 	}
 
+	// 打印 memblock 内存分配器的详细调试信息
 	/* Dump memblock with node info and return. */
 	memblock_dump_all();
 	return 0;
@@ -657,6 +661,7 @@ static int __init numa_init(int (*init_func)(void))
 	WARN_ON(memblock_clear_hotplug(0, ULLONG_MAX));
 	numa_reset_distance();
 
+	// 把 NUMA 相关的信息保存在 numa_meminfo 中
 	ret = init_func();
 	if (ret < 0)
 		return ret;
@@ -677,6 +682,7 @@ static int __init numa_init(int (*init_func)(void))
 
 	numa_emulation(&numa_meminfo, numa_distance_cnt);
 
+	// memblock 添加 NUMA 信息，并为每个 Node 申请对象
 	ret = numa_register_memblks(&numa_meminfo);
 	if (ret < 0)
 		return ret;
@@ -689,6 +695,8 @@ static int __init numa_init(int (*init_func)(void))
 		if (!node_online(nid))
 			numa_clear_node(i);
 	}
+
+	// 将各个 CPU 核与 NUMA 节点关联
 	numa_init_array();
 
 	return 0;

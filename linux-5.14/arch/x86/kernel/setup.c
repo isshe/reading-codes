@@ -840,6 +840,7 @@ void __init setup_arch(char **cmdline_p)
 	x86_init.oem.arch_setup();
 
 	iomem_resource.end = (1ULL << boot_cpu_data.x86_phys_bits) - 1;
+	// 保存物理内存检测结果
 	e820__memory_setup();
 	parse_setup_data();
 
@@ -1026,6 +1027,8 @@ void __init setup_arch(char **cmdline_p)
 	cleanup_highmap();
 
 	memblock_set_current_limit(ISA_END_ADDRESS);
+
+	// memblock 内存分配器初始化
 	e820__memblock_setup();
 
 	/*
@@ -1129,6 +1132,7 @@ void __init setup_arch(char **cmdline_p)
 
 	early_acpi_boot_init();
 
+	// 内存初始化（包括 NUMA 机制初始化）
 	initmem_init();
 	dma_contiguous_reserve(max_pfn_mapped << PAGE_SHIFT);
 
